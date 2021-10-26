@@ -60,9 +60,9 @@ function start() {
         addEmployee();
 
       } else if (data.choice === "Update an employee role") {
-        
+
         updateRole();
-     
+
       } else if (data.choice === "Exit") {
 
         db.end();
@@ -101,8 +101,9 @@ function viewRoles() {
 }
 
 // views all info from employee table
+// employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
 function viewEmployees() {
-  db.query(`SELECT * FROM employee`, (err, data) => {
+  db.query(`SELECT * FROM employee JOIN role ON employee.role_id = role.role_id;`, (err, data) => {
     if (err) {
       throw err
       console.log(err)
@@ -169,8 +170,61 @@ function addRoles() {
 
 }
 
-// adds employee to table based on name, role id and manager id
+// asks user if employee has a manager and points them to the correct function based on input
 function addEmployee() {
+  inquirer.prompt([
+    {
+      name: "managerOption",
+      message: "Does this employee have a manager?",
+      type: "list",
+      choices: ["Yes", "No"]
+    }
+
+  ]).then((ans) => {
+    if (ans.managerOption === "No") {
+      noManager();
+
+    } else {
+      hasManager();
+    }
+  })
+}
+
+
+// if employee has no manager, the user will input name and role id to add to the table
+function noManager() {
+  inquirer.prompt([
+    {
+      name: "first_name",
+      message: "What is first name of the employee you want to add?",
+      type: "input"
+    },
+    {
+      name: "last_name",
+      message: "What is last name of the employee you want to add?",
+      type: "input"
+    },
+    {
+      name: "role_id",
+      message: "What role id does this employee belong to?",
+      type: "number"
+    },
+  ]).then((ans) => {
+    const query = `INSERT INTO employee (first_name, last_name, role_id) VALUES (?,?,?);`;
+    db.query(query, [ans.first_name, ans.last_name, ans.role_id], (err, data) => {
+      if (err) {
+        throw err
+        console.log(err)
+      } else {
+        console.log('Employee has been added');
+        start();
+      };
+    })
+  })
+}
+
+// if the employee has a manager, the user will input name, role id and their manager's id to the table
+function hasManager() {
   inquirer.prompt([
     {
       name: "first_name",
@@ -189,7 +243,7 @@ function addEmployee() {
     },
     {
       name: "manager_id",
-      message: "What is this employee's manager id number?",
+      message: "What is the Manager's id of this employee?",
       type: "number"
     }
   ]).then((ans) => {
@@ -207,6 +261,7 @@ function addEmployee() {
 
 }
 
+// user can change the role id of an existing employee 
 function updateRole() {
   inquirer.prompt([
     {
@@ -221,8 +276,10 @@ function updateRole() {
     }
 
   ]).then((ans) => {
-    const query = `UPDATE employee SET role_id=? WHERE id=?;`;
-    db.query(query, [ans.roleIdNew, ans.idStart], (err, data) => {
+    const empid = ans.idStart;
+    const roleid = ans.roleIdNew;
+    const query = `UPDATE employee SET role_id=${roleid} WHERE emp_id=${empid};`;
+    db.query(query, (err, data) => {
       if (err) {
         throw err;
         console.log(err);
